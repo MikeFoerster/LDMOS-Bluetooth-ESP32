@@ -17,6 +17,7 @@
 
 //Version:
 // 1.0  Can't seem to get the HC-05, HM-10 or HM-18 to work with the IC-705, so I'm adapting the ESP32 WROOM (which connects and works great)
+// 1.6  
 //
 //  Requirements:
 //      The Arduino MEGA Serial3 will connect with the ESP32 Serial2.
@@ -33,6 +34,7 @@
 //          "tnsc[0-1]" Change Transceive State to ON or OFF.
 //          "poff"   Turn off Power to the IC-705.
 //          "slep"   Put the ESP23 to sleep.
+//          "vers"   Return 2 digit Version Number
 //      In the case of a failure, return "nak/CR", the MEGA will retry.
 //
 //      Operate in 2 Modes, depending on Transceive Mode:
@@ -43,6 +45,8 @@
 //     This version ALSO include test for the new FreqToBand.
 //  Version 1.5 Clean out Test for FreqToBand.
 //     Changed from "OffBand" to "HamBand" to be compatible with the "Bypass()" function.
+//  Version 16 (dropped the decimal point).
+//     Added command "vers" for BT Query on startup.  That way the MEGA can display the BT code Version. 
 
 
 
@@ -58,7 +62,7 @@ BluetoothSerial SerialBT;
 
 //Global to indicate Amp is in Transmit Mode
 boolean TxFlag;
-
+const int Version = 16;
 void setup()
 {
   Serial.begin(115200);
@@ -92,6 +96,7 @@ void setup()
   //  Serial.println(F(" 'tnsc[0-1]' Sets Transceive State,"));
   //  Serial.println(F(" 'poff' Sets Power Off,"));
   //  Serial.println(F(" 'slep' Puts ESP32 to Sleep."));
+  //  Serial.println(F(" 'vers' Return Version Number (2 digit)."));
 }
 
 //IC-705 Settings:
@@ -220,6 +225,10 @@ void loop() {
       else ReturnString = "poff1";
     }
 
+    else if (rx_SubString == "vers") {
+      //Return Version Number, 2 digit:     
+      ReturnString = "vers" + String(Version);
+    }
     else if (rx_SubString == "slep") {
       //Put the ESP32 to Deep Sleep.
 
@@ -278,13 +287,13 @@ void loop() {
   }
   else {
     //Not in the Transcieve Mode...
-    
+
     //If we are transmitting (TxFlag==1), then reset the Timer so we don't try to read the Band during the transmit.
     if (TxFlag) Timer = millis();
 
     //Set the ReadTrigger
     if ((millis() - Timer) > 5000) {
-            //Update the CurrentBand, poll for the frequency every 5 seconds, to update the CurrentBand variable.
+      //Update the CurrentBand, poll for the frequency every 5 seconds, to update the CurrentBand variable.
       Freq = CIV_Read_Frequency();
       //Will Return 255 for invalid band:
       CurrentBand = FreqToBand(Freq, HamBand);//Update the CurrentBand variable
